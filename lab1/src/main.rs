@@ -1,8 +1,8 @@
 use aes::Aes128;
 use aes::cipher::{ 
-//    BlockCipher, BlockEncrypt, BlockDecrypt, KeyInit, 
-    generic_array::{GenericArray, typenum::U8} // ArrayLength
+    generic_array::{GenericArray, typenum::U16}
 };
+use urandom;
 
 #[derive(Debug)] 
 enum CipherMode{
@@ -14,28 +14,19 @@ enum CipherMode{
 }
 
 struct Cipher{
-    bc:    Option<Aes128>,
-    key:   Option<GenericArray<u8, U8>>,
-    mode:  Option<CipherMode>,
-    IV:    Option<GenericArray<u8, U8>>,
-    nonce: Option<GenericArray<u8, U8>>,
+    bc:     Option<Aes128>,
+    key:    Option<GenericArray<u8, U16>>,
+    mode:   Option<CipherMode>,
+    IV:     Option<GenericArray<u8, U16>>,
+    prev_c: Option<GenericArray<u8, U16>>,
 }
 
 impl Cipher{
-    fn SetKey(&mut self, key: &[u8]){
-        if key.len() != 16{
-            panic!("Key length must be 16");
-        }
-        
-//        let tmp = GenericArray::clone_from_slice(key);
-//        self.key = Some(tmp);
-
-        if let Some(key) = self.key{
-            for i in 0..16{
-                println!("{}", key[i]);
-            }
-        }
-//        self.bc = Aes128::new(&self.key);
+    fn SetKey(&mut self, key: &[u8; 16]){
+        let key = GenericArray::<u8, U16>::clone_from_slice(key);
+        let cipher = Aes128::new(&key);
+        self.key = Some(key);
+        self.bc = Some(cipher);
     }
 
     fn SetMode(&mut self, mode: &str){
@@ -54,25 +45,68 @@ impl Cipher{
         if pad == 0{
             pad = 16;
         }
-        let mut res = Vec::from(data);
+        let mut res: Vec<u8> = Vec::from(data);
         for _ in 0..pad{
             res.push(pad);
         }
         res
     }
 
-    fn ProcessBlockEncrypt(&self, data: &[u8], isFinalBlock: bool, padding: &str){
-        let mut block: &[u8];
-        match padding{
-            "PKCS7" => block = &self.pad(data)[..],
-            "NON" => block = data,
+    fn ProcessBlockEncrypt(&self, data: &[u8], isFirstBlock: bool) -> Vec<u8>{
+        match self.mode{
+            Some(mode) => {
+                match mode{
+                    ECB => {
+                        let mut block: GenericArray<u8, U16> = GenericArray::clone_from_slice(data);
+                        self.BlockCipherEncrypt(&mut block);
+                        Vec::from(block.as_slice());
+                    },
+                    CBC => {
+                        if isFirstBlock{
+                            let mut rng = urandom::new();
+                            let mut iv = [0u8; 16];
+
+                            for i in 0..16{
+                                iv[i] = rng.next::<u8>();
+                            }
+                        }
+                    }                            
+                }
+            },
+            None => panic!("Mode is not specified"),
+        }
+    }
+
+    fn BlockCipherEncrypt(&self, data: &mut GenericArray<u8, U16>){
+        if data.len() != 16{
+            panic!("Incorrect block length");
+        }
+
+        match self.bc{
+            Some(cipher) => cipher.encrypt_block(&mut data),
+            None => panic!("Encryption of None"),
+        }
+    }
+
+    fn Encrypt(&self, data: &[u8], iv: &[u8], padding: &str) -> Vec<u8>{
+        match self.bc{
+            Some(_) => (),
+            None => panic!("Block Cipher is not initialized"),
+        }
+
+        let mut padded_data = match padding{
+            "PKCS7" => &self.pad(data)[..],
+            "NON" => data.clone(),
             _ => panic!("Unknown padding scheme"),
         };
-    }
 
-    fn BlockCipherEncrypt(&self, data: &[u8]){
+        let block_len = padded_data.len() / 16;
+        for i in 0..block_len - 1{
+            self.ProcessBlockEncrypt(&padded_data[16*i..17*i]);
+        }
+        self.ProcessBlockEncrypt(&padded_data[(block_len - 1) * 16..padded_data.len()]);
+        Vec::from(padded_data);
     }
-
 }
 
 fn main() {
@@ -84,9 +118,8 @@ fn main() {
         nonce: None,
     };
 
-    let key = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
-    let t = GenericArray::clone_from_slice(key);
-    //c.SetKey(&key);
+    let key: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
+    c.SetKey(&key);
     //c.SetMode("ECB");
     //
     //match c.mode{
