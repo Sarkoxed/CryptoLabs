@@ -5,6 +5,7 @@ use aes::cipher::{
 };
 use urandom;
 use std::io;
+use hex_literal::hex;
 
 enum CipherMode{
     ECB,
@@ -23,7 +24,10 @@ struct Cipher{
 }
 
 impl Cipher{
-    fn SetKey(&mut self, key: &[u8; 16]){
+    fn SetKey(&mut self, key: &[u8]){
+        if key.len() != 16{
+            panic!("Incorrect key length");
+        }
         let key = GenericArray::<u8, U16>::clone_from_slice(key);
         let cipher = Aes128::new(&key);
         self.key = Some(key);
@@ -330,13 +334,10 @@ fn randbytes(x: &mut [u8]){
 
 fn check_cbc(n: u16){
     use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
-    use hex_literal::hex;
     type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
     type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
 
-    for i in 0..n{
-        println!("Round {}", i + 1);
-
+    for _ in 0..n{
         let mut key = [0u8; 16];
         let mut iv = [0u8; 16];
         let mut pt = [0u8; 21];
@@ -344,8 +345,7 @@ fn check_cbc(n: u16){
         randbytes(&mut iv);
         randbytes(&mut pt);
 
-        let mut pt1 = pt.clone();
-
+        let pt1 = pt.clone();
 
         let mut c = Cipher{
             bc: None,
@@ -368,6 +368,120 @@ fn check_cbc(n: u16){
     }
 }
 
+fn decrypt_things(key: &[u8], cc: &[u8], mode: &str){
+    let mut iv = cc.clone();
+    iv = &iv[..16];
+    
+
+    let ct = cc.clone();
+    let mut ct = Vec::from(&ct[16..]);
+
+    let mut c = Cipher{
+        bc: None,
+        key: None,
+        mode: None,
+        IV: None,
+        prev: None,
+    };
+
+    c.SetKey(&key);
+    
+    let pad = match mode{
+        "CBC" => "PKCS7",
+        "CTR" => "NON",
+        _ => panic!("lol"),
+    };
+    c.SetMode(mode);
+
+    let pt = c.Decrypt(&mut ct, &iv, pad);
+
+    for i in pt{
+        print!("{}", i as char);
+    }
+    println!();
+}
+
+fn print_hex(v: &[u8]){
+    for i in v{
+        print!("{:02x}", i);
+    }
+    println!();
+}
+
+fn check_encs(pt: &[u8]){
+    let mut key = [0u8; 16];
+    let mut iv = [0u8; 16];
+    let mut nonce = [0u8; 16];
+    randbytes(&mut key);
+    randbytes(&mut iv);
+    randbytes(&mut nonce);
+    nonce[15] = 0;
+    nonce[14] = 0;
+    nonce[13] = 0;
+    nonce[12] = 0;
+
+    let mut c = Cipher{
+        bc: None,
+        key: None,
+        mode: None,
+        IV: None,
+        prev: None,
+    };
+
+    println!();
+    print_hex(&pt);
+    println!();
+
+    // ECB
+    c.SetMode("ECB");
+    c.SetKey(&key);
+    let mut ct = c.Encrypt(&mut pt.clone(), &[], "PKCS7");
+    print_hex(&ct);
+    let pt1 = c.Decrypt(&mut ct, &iv, "PKCS7");
+    print_hex(&pt1);
+    assert_eq!(pt1, pt);
+    println!();
+
+    // CBC
+    c.SetMode("CBC");
+    c.SetKey(&key);
+    let mut ct = c.Encrypt(&mut pt.clone(), &iv, "PKCS7");
+    print_hex(&ct);
+    let pt1 = c.Decrypt(&mut ct, &iv, "PKCS7");
+    print_hex(&pt1);
+    assert_eq!(pt1, pt);
+    println!();
+
+    // CFB
+    c.SetMode("CFB");
+    c.SetKey(&key);
+    let mut ct = c.Encrypt(&mut pt.clone(), &iv, "PKCS7");
+    print_hex(&ct);
+    let pt1 = c.Decrypt(&mut ct, &iv, "PKCS7");
+    print_hex(&pt1);
+    assert_eq!(pt1, pt);
+    println!();
+
+    // OFB
+    c.SetMode("OFB");
+    c.SetKey(&key);
+    let mut ct = c.Encrypt(&mut pt.clone(), &iv, "PKCS7");
+    print_hex(&ct);
+    let pt1 = c.Decrypt(&mut ct, &iv, "PKCS7");
+    print_hex(&pt1);
+    assert_eq!(pt1, pt);
+    println!();
+
+    // CTR
+    c.SetMode("CTR");
+    c.SetKey(&key);
+    let mut ct = c.Encrypt(&mut pt.clone(), &nonce, "PKCS7");
+    print_hex(&ct);
+    let pt1 = c.Decrypt(&mut ct, &nonce, "PKCS7");
+    print_hex(&pt1);
+    assert_eq!(pt1, pt);
+    println!();
+}
 
     
 fn main() {
@@ -375,13 +489,22 @@ fn main() {
     //io::stdin().read_line(&mut mode).expect("Failed to read line");
     //let mode = mode.trim();
 
-    //let pad = match mode{
-    //    "ECB" => "PKCS7",
-    //    "CBC" => "PKCS7",
-    //    other => "NON",
-    //};
-    //c.SetMode(mode);
-    //print!("{:02x}", 2);
-    check_cbc(100);
+    //2
+    check_cbc(10000);
 
+    //2.5
+    let key = hex!("140b41b22a29beb4061bda66b6747e14");
+    let ct =  hex!("4ca00ff4c898d61e1edbf1800618fb2828a226d160dad07883d04e008a7897ee2e4b7465d5290d0c0e6c6822236e1daafb94ffe0c5da05d9476be028ad7c1d81");
+    decrypt_things(&key, &ct, "CBC");
+    let ct =  hex!("5b68629feb8606f9a6667670b75b38a5b4832d0f26e1ab7da33249de7d4afc48e713ac646ace36e872ad5fb8a512428a6e21364b0c374df45503473c5242a253");
+    decrypt_things(&key, &ct, "CBC");
+    let key = hex!("36f18357be4dbd77f050515c73fcf9f2");
+    let ct =  hex!("69dda8455c7dd4254bf353b773304eec0ec7702330098ce7f7520d1cbbb20fc388d1b0adb5054dbd7370849dbf0b88d393f252e764f1f5f7ad97ef79d59ce29f5f51eeca32eabedd9afa9329");
+    decrypt_things(&key, &ct, "CTR");
+    let ct =  hex!("770b80259ec33beb2561358a9f2dc617e46218c0a53cbeca695ae45faa8952aa0e311bde9d4e01726d3184c34451");
+    decrypt_things(&key, &ct, "CTR");
+
+    //3
+    let pt = *b"i hate rust i hate rust i hate rust i ha";
+    check_encs(&pt);
 }
