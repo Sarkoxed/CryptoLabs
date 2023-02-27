@@ -43,7 +43,7 @@ impl Cipher{
     }
 
     fn pad(&self, data: &[u8]) -> Vec<u8>{
-        let mut pad: u8 = 16 - (data.len() % 16) as u8;
+        let pad: u8 = 16 - (data.len() % 16) as u8;
 
         let mut res: Vec<u8> = Vec::from(data.clone());
         for _ in 0..pad{
@@ -215,6 +215,110 @@ impl Cipher{
         ciphertext.append(&mut tmp);
         ciphertext
     }
+
+    fn ProcessBlockDecrypt(&mut self, data: &mut [u8]) -> Vec<u8>{
+        match &self.mode{
+            Some(mode) => {
+                match mode{
+                    CipherMode::ECB => {
+                        let mut block: GenericArray<u8, U16> = GenericArray::clone_from_slice(data);
+                        self.BlockCipherDecrypt(&mut block);
+                        Vec::from(block.as_slice())
+                    }
+                    CipherMode::CBC => {
+                        if let Some(prev) = self.prev{
+                            let mut block: GenericArray<u8, U16> = GenericArray::clone_from_slice(data);
+                            self.prev = Some(block);
+                            self.BlockCipherDecrypt(&mut block);
+                            for i in 0..16{
+                                block[i] = block[i] ^ prev[i];
+                            }
+                            Vec::from(block.as_slice())
+                        }else{
+                            panic!("Iv is None");
+                        }
+                    }
+                    CipherMode::CFB => {
+                        if let Some(prev) = self.prev{
+                            let mut block: GenericArray<u8, U16> = prev;
+                            self.BlockCipherEncrypt(&mut block);
+                            
+                            if data.len() == 16{
+                                let tmp = GenericArray::<u8, U16>::clone_from_slice(data);
+                                self.prev = Some(tmp);
+                            }
+
+                            for i in 0..data.len(){
+                                data[i] = block[i] ^ data[i];
+                                block[i] = data[i];
+                            }
+                            Vec::from(data)
+                        }else{
+                            panic!("Prev is None");
+                        }
+                    }
+                    CipherMode::OFB => {
+                        self.ProcessBlockEncrypt(data)
+                    }
+                    CipherMode::CTR => {
+                        self.ProcessBlockEncrypt(data)
+                    }
+                }
+            }
+            None => panic!("Mode is not specified"),
+        }
+    }
+
+    fn BlockCipherDecrypt(&self, data: &mut GenericArray<u8, U16>){
+        if data.len() != 16{
+            panic!("Incorrect block length");
+        }
+
+        match &self.bc{
+            Some(cipher) => cipher.decrypt_block(data),
+            None => panic!("Encryption of None"),
+        }
+    }
+
+    fn unpad(&self, data: &mut Vec<u8>){
+        let it: usize = data[data.len()-1] as usize;
+        for _ in 0..it{
+            _ = data.pop();
+        }
+    }
+
+    fn Decrypt(&mut self, data: &mut [u8], iv: &[u8], padding: &str) -> Vec<u8>{
+        match self.bc{
+            Some(_) => (),
+            None => panic!("Block Cipher is not initialized"),
+        }
+
+        if iv.len() == 0{
+            panic!("No IV provided");
+        }else{
+            self.IV = Some(GenericArray::<u8, U16>::clone_from_slice(iv));
+            self.prev = self.IV;
+        }
+
+        let block_len = (data.len() + 15) / 16;
+        let len = data.len();
+
+        let mut plaintext: Vec<u8> = Vec::from([]);
+
+        for i in 0..block_len - 1{
+            let mut tmp: Vec<u8> = self.ProcessBlockDecrypt(&mut data[16*i..16*(i + 1)]);
+            plaintext.append(&mut tmp);
+        }
+        let mut tmp: Vec<u8> = self.ProcessBlockDecrypt(&mut data[(block_len - 1) * 16..len]);
+        plaintext.append(&mut tmp);
+
+        match padding{
+            "PKCS7" => self.unpad(&mut plaintext),
+            "NON" => (),
+            _ => panic!("Unknown padding scheme"),
+        };
+        plaintext
+    }
 }
 
 fn main() {
@@ -233,6 +337,13 @@ fn main() {
     let mut mode = String::new();
     io::stdin().read_line(&mut mode).expect("Failed to read line");
     let mode = mode.trim();
+
+    let pad = match mode{
+        "ECB" => "PKCS7",
+        "CBC" => "PKCS7",
+        other => "NON",
+    };
+
     c.SetMode(mode);
 
     let pt = "Ya sobaka ti sobaka".as_bytes();
@@ -243,8 +354,31 @@ fn main() {
     }
     println!();
     println!("Ciphertext: ");
-    let ct = c.Encrypt(&pt, &iv, "NON"); 
-    for c in ct{
+    let mut ct = c.Encrypt(&pt, &iv, pad); 
+    for c in &ct{
         print!("{:02x}", c);
     }
+
+    let mut c = Cipher{
+        bc: None,
+        key: None,
+        mode: None,
+        IV: None,
+        prev: None,
+    };
+
+    let key: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
+    let iv: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 0, 0, 0, 0];
+
+    c.SetKey(&key);
+    c.SetMode(mode);
+
+    println!();
+    println!("Plaintext: ");
+
+    let pt = c.Decrypt(&mut ct[..], &iv, pad); 
+    for p in pt{
+        print!("{:02x}", p);
+    }
+
 }
