@@ -4,6 +4,7 @@ use aes::cipher::{
     generic_array::{GenericArray, typenum::U16}
 };
 use urandom;
+use std::io;
 
 #[derive(Debug)] 
 enum CipherMode{
@@ -69,7 +70,6 @@ impl Cipher{
             Some(mode) => {
                 match mode{
                     CipherMode::ECB => {
-                        println!("{}", data.len());
                         let mut block: GenericArray<u8, U16> = GenericArray::clone_from_slice(data);
                         self.BlockCipherEncrypt(&mut block);
                         Vec::from(block.as_slice())
@@ -85,7 +85,8 @@ impl Cipher{
                             for i in 0..16{
                                 block[i] = data[i] ^ prev[i];
                             }
-                            let mut block: GenericArray<u8, U16> = GenericArray::clone_from_slice(data);
+
+                            let mut block: GenericArray<u8, U16> = GenericArray::clone_from_slice(&block);
                             self.BlockCipherEncrypt(&mut block);
                             self.prev = Some(block);
                             Vec::from(block.as_slice())
@@ -102,7 +103,6 @@ impl Cipher{
                         if let Some(prev) = self.prev{
                             let mut block: GenericArray<u8, U16> = prev;
                             self.BlockCipherEncrypt(&mut block);
-                            
                             for i in 0..data.len(){
                                 data[i] = block[i] ^ data[i];
                                 block[i] = data[i];
@@ -202,7 +202,7 @@ impl Cipher{
             _ => panic!("Unknown padding scheme"),
         };
 
-        let block_len = padded_data.len() / 16;
+        let block_len = (padded_data.len() + 15) / 16;
         let len = padded_data.len();
 
         let mut ciphertext: Vec<u8> = Vec::from([]);
@@ -227,19 +227,24 @@ fn main() {
     };
 
     let key: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
-    let iv: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
+    let iv: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 0, 0, 0, 0];
 
     c.SetKey(&key);
-    c.SetMode("CBC");
+    let mut mode = String::new();
+    io::stdin().read_line(&mut mode).expect("Failed to read line");
+    let mode = mode.trim();
+    c.SetMode(mode);
 
     let pt = "Ya sobaka ti sobaka".as_bytes();
-
+    
+    println!("Plaintext:");
     for i in pt{
-        print!("{}, ", i);
+        print!("{:02x}", i);
     }
-
-    let ct = c.Encrypt(&pt, &iv, "PKCS7"); 
+    println!();
+    println!("Ciphertext: ");
+    let ct = c.Encrypt(&pt, &iv, "NON"); 
     for c in ct{
-        print!("{}, ", c);
+        print!("{:02x}", c);
     }
 }
