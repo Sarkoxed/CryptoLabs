@@ -1,12 +1,11 @@
 use aes::Aes128;
 use aes::cipher::{ 
     BlockCipher, BlockEncrypt, BlockDecrypt, KeyInit,
-    generic_array::{GenericArray, typenum::U16}
+    generic_array::{GenericArray, typenum::U16},
 };
 use urandom;
 use std::io;
 
-#[derive(Debug)] 
 enum CipherMode{
     ECB,
     CBC,
@@ -321,64 +320,68 @@ impl Cipher{
     }
 }
 
-fn main() {
-    let mut c = Cipher{
-        bc: None,
-        key: None,
-        mode: None,
-        IV: None,
-        prev: None,
-    };
 
-    let key: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
-    let iv: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 0, 0, 0, 0];
+fn randbytes(x: &mut [u8]){
+    let mut rng = urandom::new();
+    for i in 0..x.len(){
+        x[i] = rng.next::<u8>();
+    }
+}
 
-    c.SetKey(&key);
-    let mut mode = String::new();
-    io::stdin().read_line(&mut mode).expect("Failed to read line");
-    let mode = mode.trim();
+fn check_cbc(n: u16){
+    use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+    use hex_literal::hex;
+    type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
+    type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
 
-    let pad = match mode{
-        "ECB" => "PKCS7",
-        "CBC" => "PKCS7",
-        other => "NON",
-    };
+    for i in 0..n{
+        println!("Round {}", i + 1);
 
-    c.SetMode(mode);
+        let mut key = [0u8; 16];
+        let mut iv = [0u8; 16];
+        let mut pt = [0u8; 21];
+        randbytes(&mut key);
+        randbytes(&mut iv);
+        randbytes(&mut pt);
 
-    let pt = "Ya sobaka ti sobaka".as_bytes();
+        let mut pt1 = pt.clone();
+
+
+        let mut c = Cipher{
+            bc: None,
+            key: None,
+            mode: None,
+            IV: None,
+            prev: None,
+        };
+        c.SetKey(&key);
+        c.SetMode("CBC");
+        
+
+        let ct = c.Encrypt(&mut pt, &iv, "PKCS7");
+
+        let mut buf = [0u8; 32];
+        let ct1 = Aes128CbcEnc::new(&key.into(), &iv.into())
+            .encrypt_padded_b2b_mut::<Pkcs7>(&pt1, &mut buf)
+            .unwrap();
+        assert_eq!(ct, ct1);
+    }
+}
+
+
     
-    println!("Plaintext:");
-    for i in pt{
-        print!("{:02x}", i);
-    }
-    println!();
-    println!("Ciphertext: ");
-    let mut ct = c.Encrypt(&pt, &iv, pad); 
-    for c in &ct{
-        print!("{:02x}", c);
-    }
+fn main() {
+    //let mut mode = String::new();
+    //io::stdin().read_line(&mut mode).expect("Failed to read line");
+    //let mode = mode.trim();
 
-    let mut c = Cipher{
-        bc: None,
-        key: None,
-        mode: None,
-        IV: None,
-        prev: None,
-    };
-
-    let key: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8];
-    let iv: [u8; 16] = [7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 7, 8, 0, 0, 0, 0];
-
-    c.SetKey(&key);
-    c.SetMode(mode);
-
-    println!();
-    println!("Plaintext: ");
-
-    let pt = c.Decrypt(&mut ct[..], &iv, pad); 
-    for p in pt{
-        print!("{:02x}", p);
-    }
+    //let pad = match mode{
+    //    "ECB" => "PKCS7",
+    //    "CBC" => "PKCS7",
+    //    other => "NON",
+    //};
+    //c.SetMode(mode);
+    //print!("{:02x}", 2);
+    check_cbc(100);
 
 }
