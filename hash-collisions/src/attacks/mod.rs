@@ -1,10 +1,10 @@
-mod tools;
-pub use tools::hash;
-pub use tools::randbytes;
-pub use tools::hsb;
-
 mod birthday;
 pub use birthday::birthday_sha256;
 
 mod pollard;
-pub use pollard::pollard_sha256;
+pub use pollard::pollard_short;
+pub use pollard::pollard_full;
+
+mod pollard_own;
+pub use pollard_own::pollard_own_short;
+pub use pollard_own::pollard_own_full;
