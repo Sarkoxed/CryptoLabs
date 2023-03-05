@@ -24,7 +24,7 @@ fn extend(h: &mut Vec<u8>, k: u8) {
     }
 }
 
-pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>)> {
+pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
     if n_threads <= 1 {
         panic!("Not enough threads");
     }
@@ -143,11 +143,15 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
     if state1 == state2 {
         return None;
     }
-    Some((state1, state2))
+    let map = match pairs.lock() {
+        Ok(val) => val,
+        Err(error) => panic!("{error}"),
+    };
+
+    Some((state1, state2, map.len() *((m_bits + k as usize)/8 + 5)))
 }
 
-pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>)> {
-    // , k_bits: usize
+pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
     if n_threads <= 1 {
         panic!("Not enough threads");
     }
@@ -264,5 +268,10 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
     if state1 == state2 {
         return None;
     }
-    Some((state1, state2))
+
+    let map = match pairs.lock() {
+        Ok(val) => val,
+        Err(error) => panic!("{error}"),
+    };
+    Some((state1, state2, map.len() *(2 + (k as usize)/8 + 5)))
 }
