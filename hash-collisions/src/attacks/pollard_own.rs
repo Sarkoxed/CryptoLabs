@@ -36,7 +36,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
     let (tx, rx) = mpsc::channel();
     let mut handles = vec![];
 
-    for _th in 0..n_threads {
+    for th in 0..n_threads {
         let pairs_f = Arc::clone(&pairs);
         let txi = tx.clone();
 
@@ -51,7 +51,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
 
             let mut counter: u32 = 1;
             loop {
-                if counter % 10000 == 0 {
+                if counter % 1000 == 0 {
                     // anti-cycle
                     let map = match pairs_f.lock() {
                         Ok(val) => val,
@@ -71,6 +71,12 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
                         Ok(val) => val,
                         Err(error) => panic!("{error}"),
                     };
+
+                    let tmp = (*map).get(&vec![]);
+                    if let Some(_prev) = tmp {
+                        break;
+                    }
+
                     let tmp = (*map).get(&h);
                     if let Some(_prev) = tmp {
                         (*map).insert(vec![], (vec![], 0));
@@ -94,11 +100,11 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
         Ok(val) => val,
         Err(error) => panic!("{error}"),
     };
-
+    
     for (_, handle) in handles.into_iter().enumerate() {
         handle.join().unwrap();
     }
-
+    
     let map = match pairs.lock() {
         Ok(val) => val,
         Err(error) => panic!("{error}"),
@@ -123,11 +129,6 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
     if state1 == state2 {
         return None;
     }
-    let map = match pairs.lock() {
-        Ok(val) => val,
-        Err(error) => panic!("{error}"),
-    };
-
     Some((state1, state2, map.len() *((m_bits + k as usize)/4 + 1)))
 }
 
@@ -238,10 +239,5 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
     if state1 == state2 {
         return None;
     }
-    let map = match pairs.lock() {
-        Ok(val) => val,
-        Err(error) => panic!("{error}"),
-    };
-
     Some((state1, state2, map.len() *((m_bits + 2 * k as usize)/8 + 2 + 1)))
 }
