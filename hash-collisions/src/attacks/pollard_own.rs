@@ -3,8 +3,6 @@ use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use std::time::Duration;
-
 use crate::tools::{hash, hsb, lsb, new_hash, randbytes};
 
 fn dist_point(h: &Vec<u8>, q: usize) -> bool {
@@ -38,7 +36,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
     let (tx, rx) = mpsc::channel();
     let mut handles = vec![];
 
-    for th in 0..n_threads {
+    for _th in 0..n_threads {
         let pairs_f = Arc::clone(&pairs);
         let txi = tx.clone();
 
@@ -55,7 +53,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
             loop {
                 if counter % 10000 == 0 {
                     // anti-cycle
-                    let mut map = match pairs_f.lock() {
+                    let map = match pairs_f.lock() {
                         Ok(val) => val,
                         Err(error) => panic!("{error}"),
                     };
@@ -97,7 +95,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
         Err(error) => panic!("{error}"),
     };
 
-    for (i, handle) in handles.into_iter().enumerate() {
+    for (_, handle) in handles.into_iter().enumerate() {
         handle.join().unwrap();
     }
 
@@ -157,7 +155,7 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
             loop {
                 if counter % 10000 == 0 {
                     // anti-cycle
-                    let mut map = match pairs_f.lock() {
+                    let map = match pairs_f.lock() {
                         Ok(val) => val,
                         Err(error) => panic!("{error}"),
                     };
@@ -207,8 +205,7 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
         Err(error) => panic!("{error}"),
     };
 
-    for (i, handle) in handles.into_iter().enumerate() {
-        println!("{i}");
+    for (_, handle) in handles.into_iter().enumerate() {
         handle.join().unwrap();
     }
 

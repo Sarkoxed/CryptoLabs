@@ -3,8 +3,6 @@ use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use std::time::Duration;
-
 use crate::tools::{hash, hsb, lsb, new_hash, randbytes};
 
 fn dist_point(h: &Vec<u8>, q: usize) -> bool {
@@ -54,7 +52,7 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
             loop {
                 if counter % 10000 == 0 {
                     // anti-cycle
-                    let mut map = match pairs_f.lock() {
+                    let map = match pairs_f.lock() {
                         Ok(val) => val,
                         Err(error) => panic!("{error}"),
                     };
@@ -85,7 +83,6 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
                         let (c2, th2) = prev;
                         let c2 = *c2;
                         let th2 = *th2;
-                        println!("found, {}, {}, {}", th, counter, c2);
                         (*map).insert(vec![], (0, 0));
                         _ = txi.send((th, counter, th2, c2));
                         break;
@@ -106,8 +103,7 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
         Err(error) => panic!("{error}"),
     };
 
-    for (i, handle) in handles.into_iter().enumerate() {
-        println!("{i}");
+    for (_, handle) in handles.into_iter().enumerate() {
         handle.join().unwrap();
     }
 
@@ -179,7 +175,7 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
             loop {
                 if counter % 10000 == 0 {
                     // anti-cycle
-                    let mut map = match pairs_f.lock() {
+                    let map = match pairs_f.lock() {
                         Ok(val) => val,
                         Err(error) => panic!("{error}"),
                     };
@@ -229,8 +225,7 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
         Err(error) => panic!("{error}"),
     };
 
-    for (i, handle) in handles.into_iter().enumerate() {
-        println!("{i}");
+    for (_, handle) in handles.into_iter().enumerate() {
         handle.join().unwrap();
     }
 
@@ -251,7 +246,6 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
         extend(&mut state2, k);
     }
 
-    let mut count = 0;
     loop {
         let h1 = hash(&state1);
         let h2 = hash(&state2);
@@ -267,7 +261,6 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
     }
 
     assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
-    println!("returning");
     if state1 == state2 {
         return None;
     }
