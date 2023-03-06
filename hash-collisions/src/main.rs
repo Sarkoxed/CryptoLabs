@@ -71,8 +71,6 @@ fn hashes_times_n_memory_birth(dirname: String){
             let (x, y, m) = birthday_sha256(n_bit);
             let end = now.elapsed().as_micros();
 
-            println!("{}", end);
-
             total_mem += m as u128;
             total_time += end as u128;
 
@@ -120,7 +118,7 @@ fn hashes_times_n_memory_pollard(dirname: String, pollard_type: fn(u8, usize, u8
                     file.write_all(res.as_bytes()).unwrap();
                     count += 1;
                 },
-                None => continue,
+                None => {println!("NONE"); continue},
             }
         }
         
@@ -132,9 +130,9 @@ fn hashes_times_n_memory_pollard(dirname: String, pollard_type: fn(u8, usize, u8
 }
 
 fn main(){
-    //hashes_times_n_memory_birth("data/birthday");
+    hashes_times_n_memory_birth(String::from("data/birthday"));
     //hashes_times_n_memory_pollard(String::from("data/pollard_own_short"), pollard_own_short, 8, 6);
     //hashes_times_n_memory_pollard(String::from("data/pollard_own_full"), pollard_own_full, 8, 2);
     //hashes_times_n_memory_pollard(String::from("data/pollard_short"), pollard_short, 8, 2);
-    hashes_times_n_memory_pollard(String::from("data/pollard_full"), pollard_full, 8, 2);
+    //hashes_times_n_memory_pollard(String::from("data/pollard_full"), pollard_full, 8, 2);
 }
