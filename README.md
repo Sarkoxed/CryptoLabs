@@ -54,6 +54,11 @@
 
 ![mem](./data/graphs/Memory_20.png) 
 
+- 15-35
+
+![timing](./data/graphs/Timing.png)
+
+![mem](./data/graphs/Memory.png) 
 
 ## Сравнительная таблица результатов
 
