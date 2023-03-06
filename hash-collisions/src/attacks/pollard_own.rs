@@ -96,7 +96,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
         handles.push(handle);
     }
 
-    let (mut state1, i1, h) = match rx.recv() {
+    let (mut state1, mut i1, h) = match rx.recv() {
         Ok(val) => val,
         Err(error) => panic!("{error}"),
     };
@@ -111,19 +111,37 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
     };
 
     let (state2, i2) = map.get(&h).unwrap();
-    let mut state2 = state2.clone();
-    let i2 = *i2;
 
-    for _ in 0..i1 - 1 {
-        let h1 = new_hash(&state1, m_bits);
-        state1 = h1;
-        extend(&mut state1, k);
+    let mut state2 = state2.clone();
+    let mut i2 = *i2;
+    
+    if i1 > i2{
+        (i1, i2) = (i2, i1);
+        (state2, state1) = (state1, state2);
     }
-    for _ in 0..i2 - 1 {
-        let h2 = new_hash(&state2, m_bits);
-        state2 = h2;
+
+    let d = i2 - i1;
+    for _ in 0..d {
+        state2 = new_hash(&state2, m_bits);
         extend(&mut state2, k);
     }
+
+    loop {
+        let h1 = new_hash(&state1, m_bits);
+        let h2 = new_hash(&state2, m_bits);
+
+        if h1 == h2 {
+            break;
+        }
+
+        state1 = h1;
+        state2 = h2;
+        extend(&mut state1, k);
+        extend(&mut state2, k);
+    }
+
+    assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
+ 
 
     assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
     if state1 == state2 {
@@ -206,7 +224,7 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
         handles.push(handle);
     }
 
-    let (mut state1, i1, h) = match rx.recv() {
+    let (mut state1, mut i1, h) = match rx.recv() {
         Ok(val) => val,
         Err(error) => panic!("{error}"),
     };
@@ -222,18 +240,33 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
 
     let (state2, i2) = map.get(&h).unwrap();
     let mut state2 = state2.clone();
-    let i2 = *i2;
+    let mut i2 = *i2;
 
-    for _ in 0..i1 - 1 {
-        let h1 = hash(&state1);
-        state1 = h1;
-        extend(&mut state1, k);
+    if i1 > i2{
+        (i1, i2) = (i2, i1);
+        (state2, state1) = (state1, state2);
     }
-    for _ in 0..i2 - 1 {
-        let h2 = hash(&state2);
-        state2 = h2;
+
+    let d = i2 - i1;
+    for _ in 0..d {
+        state2 = hash(&state2);
         extend(&mut state2, k);
     }
+
+    loop {
+        let h1 = hash(&state1);
+        let h2 = hash(&state2);
+
+        if lsb(&h1, m_bits) == lsb(&h2, m_bits){
+            break;
+        }
+
+        state1 = h1;
+        state2 = h2;
+        extend(&mut state1, k);
+        extend(&mut state2, k);
+    }
+
 
     assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
     if state1 == state2 {
