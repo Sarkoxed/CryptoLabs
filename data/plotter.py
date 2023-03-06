@@ -46,13 +46,35 @@ def get_specs(filename):
     return res
 
 
-#dirs = ["birthday", "pollard_short", "pollard_full", "pollard_own_short", "pollard_own_full"]
-dirs = ["birthday", "pollard_short", "pollard_own_short"]
+dirs = ["birthday", "pollard_short", "pollard_full", "pollard_own_short", "pollard_own_full"]
+#dirs = ["birthday", "pollard_short", "pollard_own_short"]
 
+for attack in dirs:
+    total_time_df = pd.DataFrame([], columns=None)
+    total_meme_df = pd.DataFrame([], columns=None)
+
+    cur_spec = get_specs(attack + "/specs")
+
+    time_ds = [[x[0], x[1] * 1000.0, attack] for x in cur_spec]
+    time_columns = ["Bits", "AvgTime", "Attack"]
+    time_df = pd.DataFrame(time_ds, columns=time_columns)
+
+    mem_ds = [[x[0], x[2] / (8.0 * 1024.0), attack] for x in cur_spec]
+    mem_columns = ["Bits", "AvgMem", "Attack"]
+    mem_df = pd.DataFrame(mem_ds, columns=mem_columns)
+    
+    total_time_df = pd.concat([total_time_df, time_df])
+    total_meme_df = pd.concat([total_meme_df, mem_df])
+    
+    print("Timing_" + attack)
+    get_plot("AvgTime", "ms", "Timing_" + attack, total_time_df, 1)
+    get_plot("AvgMem", "Kb", "Memory_" + attack, total_meme_df, 1)
+
+dirs = ["birthday", "pollard_short", "pollard_own_short"]
 total_time_df = pd.DataFrame([], columns=None)
 total_meme_df = pd.DataFrame([], columns=None)
-
 bit_bound = 6
+
 for attack in dirs:
     cur_spec = get_specs(attack + "/specs")[:bit_bound]
 
@@ -67,5 +89,6 @@ for attack in dirs:
     total_time_df = pd.concat([total_time_df, time_df])
     total_meme_df = pd.concat([total_meme_df, mem_df])
 
-get_plot("AvgTime", "ms", "Timing_Short_20", total_time_df, 5)
-get_plot("AvgMem", "Kb", "Memory_Short_20", total_meme_df, 5)
+print("Timing_20")
+get_plot("AvgTime", "ms", "Timing_20", total_time_df, 5)
+get_plot("AvgMem", "Kb", "Memory_20", total_meme_df, 5)
