@@ -45,7 +45,6 @@ fn test_omac(n: usize){
         if !res{
             panic!("Not equal");
         }
-        println!("{},{}", i, res);
     }
 }
 
@@ -71,7 +70,6 @@ fn test_hmac(n: usize){
         if !res{
             panic!("Not equal");
         }
-        println!("{}, {}", i, res);
     }
 }
 
@@ -119,7 +117,6 @@ fn test_tcbc(n: usize){
         if !res{
             panic!("Not equal");
         }
-        //println!("{}, {}", i, res);
     }
 }
 
@@ -143,11 +140,14 @@ fn check_fail_omac(){
     
     tag1[num / 8] ^= 1 << (num % 8);
     let res2 = omac.VerifyMac(&data, &tag1);
-    println!("{}, {}", res1, res2);
+    if !res1 || res2{
+        panic!("Tag forgery..");
+    }
+
 }
 
 fn check_fail_hmac(){
-    let num = rand::thread_rng().gen_range(0..128);
+    let num = rand::thread_rng().gen_range(48..96);
     let key = randbytes(num);
     let mut hmac = HMAC{
         key: None,
@@ -164,7 +164,9 @@ fn check_fail_hmac(){
     
     tag1[num / 8] ^= 1 << (num % 8);
     let res2 = hmac.VerifyMac(&data, &tag1);
-    println!("{}, {}", res1, res2);
+    if !res1 || res2{
+        panic!("Tag forgery..");
+    }
 }
 
 fn check_fail_tcbc(){
@@ -185,7 +187,9 @@ fn check_fail_tcbc(){
     
     tag1[num / 8] ^= 1 << (num % 8);
     let res2 = tcbc.VerifyMac(&data, &tag1);
-    println!("{}, {}", res1, res2);
+    if !res1 || res2{
+        panic!("Tag forgery..");
+    }
 }
 
 fn timing_omac(dirname: String, m: usize){
@@ -216,7 +220,7 @@ fn timing_omac(dirname: String, m: usize){
             let now = Instant::now();
             _ = omac.ComputeMac(&data);
             let end = now.elapsed().as_micros();
-            println!("Round: {}/{}", count + 1, m);
+ //           println!("Round: {}/{}", count + 1, m);
             total_time += end as u128;
             count += 1;
             omac.reset();
@@ -235,7 +239,7 @@ fn timing_hmac(dirname: String, m: usize){
 
     let lengths = vec![100, 1000, 10000, 100000, 1024000];
     
-    let num = rand::thread_rng().gen_range(0..128);
+    let num = rand::thread_rng().gen_range(48..96);
     let key = randbytes(num);
     let mut hmac = HMAC{
         key: None,
@@ -254,7 +258,7 @@ fn timing_hmac(dirname: String, m: usize){
             let now = Instant::now();
             _ = hmac.ComputeMac(&data);
             let end = now.elapsed().as_micros();
-            println!("Round: {}/{}", count + 1, m);
+//            println!("Round: {}/{}", count + 1, m);
             total_time += end as u128;
             count += 1;
             hmac.SetKey(key.clone());
@@ -293,7 +297,7 @@ fn timing_tcbc(dirname: String, m: usize){
             let now = Instant::now();
             _ = tcbc.ComputeMac(&data);
             let end = now.elapsed().as_micros();
-            println!("Round: {}/{}", count + 1,m);
+//            println!("Round: {}/{}", count + 1,m);
             total_time += end as u128;
             count += 1;
             tcbc.reset();
@@ -305,12 +309,17 @@ fn timing_tcbc(dirname: String, m: usize){
     }
 }
 fn main(){
-    //test_omac(100);
-    //test_hmac(100);
-    //test_tcbc(1000);
-    //check_fail_omac();
-    //check_fail_hmac();
-    //check_fail_tcbc();
+    test_omac(1000);
+    test_hmac(1000);
+    test_tcbc(1000);
+
+    println!("Tests passed");
+    for _ in 0..1000{
+        check_fail_omac();
+        check_fail_hmac();
+        check_fail_tcbc();
+    }
+    println!("Checks passed");
     timing_omac(String::from("data/omac"), 1000);
     timing_hmac(String::from("data/hmac"), 1000);
     timing_tcbc(String::from("data/tcbc"), 1000);
