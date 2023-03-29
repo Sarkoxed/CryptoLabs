@@ -86,6 +86,9 @@ impl HMAC{
     }
 
     pub fn digest(self) -> Vec<u8>{
+        if self.update{
+            panic!("No digest yet");
+        }
         Vec::from(&self.left.finalize()[..])
     }
 
