@@ -1,39 +1,18 @@
-use aes::Aes128;
-use aes::cipher::{
-    BlockCipher, BlockEncrypt, BlockDecrypt, KeyInit, 
-    generic_array::{GenericArray, typenum::U16},
-};
-use urandom;
+use std::time::{Duration, Instant};
+use std::fs::File;
+use std::io::prelude::*;
+use std::thread;
 
-fn randbytes(n: usize) -> Vec<u8>{
-    let mut rng = urandom::new();
-    let mut res = Vec::new();
-    for _ in 0..n{
-        res.push(rng.next::<u8>());
-    }
-    res
-}
+mod macs;
+mod tools;
 
-fn aes_block_encrypt(key: &Vec<u8>, data: &Vec<u8>) -> Vec<u8>{
-    if data.len() != 16{
-        panic!("Incorrect block length");
-    }
-    if key.len() != 16{
-        panic!("Incorrect key length");
-    }
-
-    let key = GenericArray::<u8, U16>::clone_from_slice(key);
-    let mut data = GenericArray::<u8, U16>::clone_from_slice(data);
-    
-    let cipher = Aes128::new(&key);
-    cipher.encrypt_block(&mut data);
-    Vec::from(&data[..])
-}
+use crate::macs::{OMAC}; //, hmac, truncmac};
+use crate::tools::{randbytes};
 
 
 fn main(){
-    let data = randbytes(16);
-    let key = randbytes(16);
-    let cipher;
+    let data = urandom(16);
+    let key = urandom(16);
     println!("Hello, world!");
+    println!("{:?}, {:?}", data, key);
 }
