@@ -196,4 +196,11 @@ impl OMAC{
             None => panic!("No state found")
         }
     }
+    
+    pub fn reset(&mut self){
+        self.prevstate = Some(vec![0u8; BlockSize]);
+        self.curstate = Some(vec![]);
+        self.update = true;
+    }
+ 
 }
