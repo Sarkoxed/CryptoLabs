@@ -4,5 +4,5 @@ pub use hmac_own::HMAC;
 mod omac_own;
 pub use omac_own::OMAC;
 
-//mod truncmac;
-//pub use truncmac::truncmac;
+mod tcbc_own;
+pub use tcbc_own::TCBC;
