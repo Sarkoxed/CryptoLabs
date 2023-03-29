@@ -1,8 +1,8 @@
-//mod hmac;
-//pub use hmac::hmac;
+mod hmac_own;
+pub use hmac_own::HMAC;
 
-mod omac;
-pub use omac::OMAC;
+mod omac_own;
+pub use omac_own::OMAC;
 
 //mod truncmac;
 //pub use truncmac::truncmac;
