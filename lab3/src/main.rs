@@ -55,7 +55,8 @@ fn test_hmac(n: usize){
         let mut hmac = HMAC{
             key: None,
             left: Sha256::new(),
-            state: Sha256::new()
+            state: Sha256::new(),
+            update: true
         };
         hmac.SetKey(key.clone());
         let mut mac = Hmac::<Sha256>::new_from_slice(&key[..]).unwrap();
@@ -152,7 +153,8 @@ fn check_fail_hmac(){
     let mut hmac = HMAC{
         key: None,
         left: Sha256::new(),
-        state: Sha256::new()
+        state: Sha256::new(),
+        update: true,
     };
     hmac.SetKey(key.clone());
     let data = randbytes(48);
@@ -244,7 +246,8 @@ fn timing_hmac(dirname: String, m: usize){
     let mut hmac = HMAC{
         key: None,
         left: Sha256::new(),
-        state: Sha256::new()
+        state: Sha256::new(),
+        update: true
     };
     hmac.SetKey(key.clone());
 
@@ -261,7 +264,7 @@ fn timing_hmac(dirname: String, m: usize){
 //            println!("Round: {}/{}", count + 1, m);
             total_time += end as u128;
             count += 1;
-            hmac.SetKey(key.clone());
+            hmac.reset();
         }
         
         let res_time = format!("{:.10}", total_time as f64 / ((m as f64) * 1000000.0));

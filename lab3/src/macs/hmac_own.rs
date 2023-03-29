@@ -4,6 +4,7 @@ pub struct HMAC{
     pub key:        Option<Vec<u8>>,
     pub state:      Sha256,
     pub left:       Sha256,
+    pub update: bool,
 }
 
 const BlockSize: usize = 64;
@@ -44,10 +45,17 @@ impl HMAC{
     }
 
     pub fn MacAddBlock(&mut self, dataBlock: &Vec<u8>){
+        if !self.update{
+            panic!("Digest is already calculated");
+        }
         self.state.update(dataBlock)
     }
 
     pub fn MacFinalize(&mut self) -> Vec<u8>{
+        if !self.update{
+            panic!("Digest is already calculated");
+        }
+        self.update = false; 
         self.left.update(&self.state.clone().finalize()[..]);
         Vec::from(&self.left.clone().finalize()[..])
     }
@@ -62,6 +70,7 @@ impl HMAC{
             Some(k) => k.to_vec(),
             None => panic!("No key found")
         };
+        self.update = true;
         let mut tmp1 = key.clone();
         let mut tmp2 = key.clone();
         for i in 0..BlockSize{
@@ -78,6 +87,15 @@ impl HMAC{
 
     pub fn digest(self) -> Vec<u8>{
         Vec::from(&self.left.finalize()[..])
+    }
+
+    pub fn reset(&mut self){
+        let key = match &self.key{
+            Some(k) => k.to_vec(),
+            None => panic!("No key found"),
+        };
+        self.SetKey(key);
+        self.update = true;
     }
 }
 
