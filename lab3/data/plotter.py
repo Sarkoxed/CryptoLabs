@@ -51,7 +51,7 @@ total_time_df = pd.DataFrame([], columns=None)
 for mac in dirs:
     cur_spec = get_specs(mac + "/specs")
 
-    time_ds = [[log(x[0]), x[1] * 1000.0, mac.upper()] for x in cur_spec]
+    time_ds = [[log(x[0])/log(10), x[1] * 1000.0, mac.upper()] for x in cur_spec]
     time_columns = ["Bytes", "AvgTime", "MAC"]
     time_df = pd.DataFrame(time_ds, columns=time_columns)
 
