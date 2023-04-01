@@ -1,7 +1,6 @@
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use std::fs::File;
 use std::io::prelude::*;
-use std::thread;
 
 mod attacks;
 mod tools;
@@ -9,8 +8,8 @@ mod tools;
 use crate::attacks::{birthday_sha256, pollard_short, pollard_full, pollard_own_short, pollard_own_full};
 use crate::tools::{hash, new_hash};
 
-fn check_birthday(n: usize){
-   for count in 1..n{
+fn check_birthday(n_bits: usize){
+   for count in 1..n_bits{
         let now = Instant::now();
         println!("Current number of bits: {}", count);
         let (x, y, _) = birthday_sha256(count);
@@ -27,11 +26,11 @@ fn check_birthday(n: usize){
    }
 }
 
-fn check_pollard(n: u8, m: usize, k: u8, pollard_type: fn(u8, usize, u8) -> Option<(Vec<u8>, Vec<u8>, usize)>){
+fn check_pollard(n_threads: u8, m_bits: usize, pad_len: u8, pollard_type: fn(u8, usize, u8) -> Option<(Vec<u8>, Vec<u8>, usize)>){
     let mut count = 1;
-    while count < m{
+    while count < m_bits{
         let now = Instant::now();
-        let res = pollard_type(n, count, k);
+        let res = pollard_type(n_threads, count, pad_len);
         println!("Current number of bits: {}", count);
         match res{
             Some((x, y, _)) => {
@@ -130,7 +129,13 @@ fn hashes_times_n_memory_pollard(dirname: String, pollard_type: fn(u8, usize, u8
 }
 
 fn main(){
-    hashes_times_n_memory_birth(String::from("data/birthday"));
+    check_birthday(20);
+    check_pollard(8, 20, 3, pollard_own_short);
+    check_pollard(8, 20, 3, pollard_own_full);
+    check_pollard(8, 20, 3, pollard_short);
+    check_pollard(8, 20, 3, pollard_full);
+
+    //hashes_times_n_memory_birth(String::from("data/birthday"));
     //hashes_times_n_memory_pollard(String::from("data/pollard_own_short"), pollard_own_short, 8, 6);
     //hashes_times_n_memory_pollard(String::from("data/pollard_own_full"), pollard_own_full, 8, 2);
     //hashes_times_n_memory_pollard(String::from("data/pollard_short"), pollard_short, 8, 2);
