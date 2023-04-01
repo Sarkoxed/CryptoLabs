@@ -24,7 +24,7 @@ fn extend(h: &mut Vec<u8>, k: u8) {
     }
 }
 
-pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
+pub fn pollard_short(n_threads: u8, m_bits: usize, pad: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
     if n_threads <= 1 {
         panic!("Not enough threads");
     }
@@ -47,7 +47,7 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
         inits.push(state.clone());
 
         let handle = thread::spawn(move || {
-            extend(&mut state, k);
+            extend(&mut state, pad);
             let mut counter: u32 = 1;
             loop {
                 if counter % 10000 == 0 {
@@ -64,7 +64,7 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
                 }
 
                 let mut h = new_hash(&state, m_bits);
-                extend(&mut h, k);
+                extend(&mut h, pad);
                 if dist_point(&h, q) {
                     let mut map = match pairs_f.lock() {
                         Ok(val) => val,
@@ -117,12 +117,12 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
     let mut state1 = (&inits[th1 as usize]).clone();
     let mut state2 = (&inits[th2 as usize]).clone();
 
-    extend(&mut state1, k);
-    extend(&mut state2, k);
+    extend(&mut state1, pad);
+    extend(&mut state2, pad);
 
     for _ in 0..d {
         state2 = new_hash(&state2, m_bits);
-        extend(&mut state2, k);
+        extend(&mut state2, pad);
     }
 
     loop {
@@ -135,8 +135,8 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
 
         state1 = h1;
         state2 = h2;
-        extend(&mut state1, k);
-        extend(&mut state2, k);
+        extend(&mut state1, pad);
+        extend(&mut state2, pad);
     }
 
     assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
@@ -148,10 +148,10 @@ pub fn pollard_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Ve
         Err(error) => panic!("{error}"),
     };
 
-    Some((state1, state2, map.len() *((m_bits + k as usize)/8 + 5)))
+    Some((state1, state2, map.len() *((m_bits + pad as usize)/8 + 5)))
 }
 
-pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
+pub fn pollard_full(n_threads: u8, m_bits: usize, pad: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
     if n_threads <= 1 {
         panic!("Not enough threads");
     }
@@ -174,7 +174,7 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
         inits.push(state.clone());
 
         let handle = thread::spawn(move || {
-            extend(&mut state, k);
+            extend(&mut state, pad);
             let mut counter: u32 = 1;
             loop {
                 if counter % 10000 == 0 {
@@ -192,7 +192,7 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
 
                 let mut h = hash(&state);
                 let h_1 = lsb(&h, m_bits);
-                extend(&mut h, k);
+                extend(&mut h, pad);
                 if dist_point(&h, q) {
                     let mut map = match pairs_f.lock() {
                         Ok(val) => val,
@@ -242,13 +242,13 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
 
     let mut state1 = (&inits[th1 as usize]).clone();
     let mut state2 = (&inits[th2 as usize]).clone();
-    extend(&mut state1, k);
-    extend(&mut state2, k);
+    extend(&mut state1, pad);
+    extend(&mut state2, pad);
 
     for _ in 0..d {
         state2 = hash(&state2);
-        extend(&mut state2, k);
-    }
+        extend(&mut state2, pad);
+    }                        
 
     loop {
         let h1 = hash(&state1);
@@ -260,8 +260,8 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
 
         state1 = h1;
         state2 = h2;
-        extend(&mut state1, k);
-        extend(&mut state2, k);
+        extend(&mut state1, pad);
+        extend(&mut state2, pad);
     }
 
     assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
@@ -273,5 +273,5 @@ pub fn pollard_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec
         Ok(val) => val,
         Err(error) => panic!("{error}"),
     };
-    Some((state1, state2, map.len() *(2 + (k as usize)/8 + 5)))
+    Some((state1, state2, map.len() *(2 + (pad as usize)/8 + 5)))
 }

@@ -24,7 +24,7 @@ fn extend(h: &mut Vec<u8>, k: u8) {
     }
 }
 
-pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
+pub fn pollard_own_short(n_threads: u8, m_bits: usize, pad: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
     if n_threads <= 1 {
         panic!("Not enough threads");
     }
@@ -36,7 +36,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
     let (tx, rx) = mpsc::channel();
     let mut handles = vec![];
 
-    for th in 0..n_threads {
+    for _ in 0..n_threads {
         let pairs_f = Arc::clone(&pairs);
         let txi = tx.clone();
 
@@ -44,7 +44,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
             let mut state = [0u8; 16];
             randbytes(&mut state);
             let mut state = Vec::from(state);
-            extend(&mut state, k);
+            extend(&mut state, pad);
 
             let mut prev_dist = state.clone();
             let mut prev_counter: u32 = 0;
@@ -65,7 +65,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
                 }
 
                 let mut h = new_hash(&state, m_bits);
-                extend(&mut h, k);
+                extend(&mut h, pad);
                 if dist_point(&h, q) {
                     let mut map = match pairs_f.lock() {
                         Ok(val) => val,
@@ -123,7 +123,7 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
     let d = i2 - i1;
     for _ in 0..d {
         state2 = new_hash(&state2, m_bits);
-        extend(&mut state2, k);
+        extend(&mut state2, pad);
     }
 
     loop {
@@ -136,21 +136,18 @@ pub fn pollard_own_short(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>
 
         state1 = h1;
         state2 = h2;
-        extend(&mut state1, k);
-        extend(&mut state2, k);
+        extend(&mut state1, pad);
+        extend(&mut state2, pad);
     }
-
-    assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
- 
 
     assert_eq!(new_hash(&state1, m_bits), new_hash(&state2, m_bits));
     if state1 == state2 {
         return None;
     }
-    Some((state1, state2, map.len() *((m_bits + k as usize)/4 + 1)))
+    Some((state1, state2, map.len() *((m_bits + pad as usize)/4 + 1)))
 }
 
-pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
+pub fn pollard_own_full(n_threads: u8, m_bits: usize, pad: u8) -> Option<(Vec<u8>, Vec<u8>, usize)> {
     if n_threads <= 1 {
         panic!("Not enough threads");
     }
@@ -170,7 +167,7 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
             let mut state = [0u8; 16];
             randbytes(&mut state);
             let mut state = Vec::from(state);
-            extend(&mut state, k);
+            extend(&mut state, pad);
 
             let mut prev_dist = state.clone();
             let mut prev_counter: u32 = 0;
@@ -192,7 +189,7 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
 
                 let mut h = hash(&state);
                 let h_1 = lsb(&h, m_bits);
-                extend(&mut h, k);
+                extend(&mut h, pad);
 
                 if dist_point(&h, q) {
                     let mut map = match pairs_f.lock() {
@@ -250,7 +247,7 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
     let d = i2 - i1;
     for _ in 0..d {
         state2 = hash(&state2);
-        extend(&mut state2, k);
+        extend(&mut state2, pad);
     }
 
     loop {
@@ -263,8 +260,8 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
 
         state1 = h1;
         state2 = h2;
-        extend(&mut state1, k);
-        extend(&mut state2, k);
+        extend(&mut state1, pad);
+        extend(&mut state2, pad);
     }
 
 
@@ -272,5 +269,5 @@ pub fn pollard_own_full(n_threads: u8, m_bits: usize, k: u8) -> Option<(Vec<u8>,
     if state1 == state2 {
         return None;
     }
-    Some((state1, state2, map.len() *((m_bits + 2 * k as usize)/8 + 2 + 1)))
+    Some((state1, state2, map.len() *((m_bits + 2 * pad as usize)/8 + 2 + 1)))
 }
