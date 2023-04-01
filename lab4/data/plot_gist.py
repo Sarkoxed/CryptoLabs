@@ -21,6 +21,7 @@ save_json(wsp, "windspeed")
 save_json(cloud, "cloudcover")
 save_json(ozone, "ozone")
 
+data = [(x / 400 + 3 * y) * (256.0 / 3.5) for x, y in zip(ozone, cloud)]
 
 print(sorted(cloud))
 print(sorted(hum))
@@ -45,3 +46,10 @@ hist(hum, 'Humidity', 'Freq', 'HumFreq')
 hist(wsp, 'WindSpeed', 'Freq', 'WindSpeedFreq')
 hist(cloud, 'CloudCover', 'Freq', 'CloudCoverFreq')
 hist(ozone, 'Ozone', 'Freq', 'OzoneFreq')
+hist(data, "Mix", "Freq", "MixFreq")
+
+data = json.load(open("res.json"))
+hist(data, "Bits", "Freq", "BitsFreq")
+
+#data = json.load(open("res"))
+#hist(data, "Bits1", "Freq1", "BitsFreq1")
