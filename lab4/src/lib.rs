@@ -40,14 +40,19 @@ pub fn HkdfExtract(xts: &Vec<u8>, skm: &Vec<u8>) -> Vec<u8>{
     HmacSha256(xts, skm)
 }
 
-pub fn long_to_bytes(mut n: u32) -> Vec<u8>{
-    let mut res: Vec<u8> = vec![];
+pub fn long_to_bytes(mut n: u32, k: usize) -> Vec<u8>{
+    let mut res: Vec<u8> = vec![0u8; k];
+    let mut counter = k-1;
     loop{
-        res.push((n % 256) as u8);
+        res[counter] = (n % 256) as u8;
         n /= 256;
+        counter -= 1;
         if n == 0{
             break;
         }
+    }
+    for _ in res.len()..k{
+        res.push(0);
     }
     res.reverse();
     res
@@ -57,7 +62,7 @@ pub fn HkdfExpand(prk: &Vec<u8>, lastKey: &Vec<u8>, ctx: &Vec<u8>, i: u32) -> Ve
     let mut Ki: Vec<u8> = vec![];
     let mut rctx = lastKey.clone();
     rctx.append(&mut prk.clone());
-    rctx.append(&mut long_to_bytes(i));
+    rctx.append(&mut long_to_bytes(i, 0));
     Ki = HmacSha256(prk, &rctx);
     Ki
 }
@@ -68,7 +73,7 @@ pub fn PBKDF2(salt: &Vec<u8>, passw: &Vec<u8>, c_rounds: u16) -> Vec<u8>{
     let mut T = vec![];
     for i in 1..L+1{
         let mut exsalt = salt.clone();
-        exsalt.append(&mut long_to_bytes(i as u32));
+        exsalt.append(&mut long_to_bytes(i as u32, 4));
         let mut Ti = HmacSha256(passw, &exsalt); 
         let mut Uc = Ti.clone();
         for _ in 1..c_rounds{
