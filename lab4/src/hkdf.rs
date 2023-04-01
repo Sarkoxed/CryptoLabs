@@ -56,7 +56,7 @@ pub fn HkdfExpand(prk: &Vec<u8>, lastKey: &Vec<u8>, ctx: &Vec<u8>, i: u32) -> Ve
     let mut Ki: Vec<u8> = vec![];
     let mut rctx = lastKey.clone();
     rctx.append(&mut prk.clone());
-    rctx.push((i % 256) as u8);
+    rctx.append(&mut long_to_bytes(i));
     Ki = HmacSha256(prk, &rctx);
     Ki
 }
