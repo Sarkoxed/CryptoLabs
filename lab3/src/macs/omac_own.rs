@@ -43,10 +43,7 @@ impl OMAC{
     }
 
     fn Derive(&mut self){
-        let key = match &self.key{
-            Some(k) => k,
-            None => panic!("No key found")
-        };
+        let key: Vec<u8> = (&self.key.clone().expect("No key found")).to_vec();
 
         let k0 = aes_block_encrypt(&key, &vec![0u8; BlockSize]);  
         let mut carry1 = 0;
