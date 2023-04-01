@@ -1,7 +1,8 @@
 use sha2::{Sha256, Digest};
 const BlockSize: usize = 64;
 const HashLen: usize = 32;
-const KeyLen: usize = 32;
+const HkdfKeyLen: usize = 32;
+const PBKDFKeyLen: usize = 64;
 const OPAD: u8 = 0x5c;
 const IPAD: u8 = 0x36;
 
@@ -62,4 +63,22 @@ pub fn HkdfExpand(prk: &Vec<u8>, lastKey: &Vec<u8>, ctx: &Vec<u8>, i: u32) -> Ve
 }
 
 
-
+pub fn PBKDF2(salt: &Vec<u8>, passw: &Vec<u8>, c_rounds: u16) -> Vec<u8>{
+    let L = (PBKDFKeyLen + HashLen - 1)/ HashLen;
+    let mut T = vec![];
+    for i in 1..L+1{
+        let mut exsalt = salt.clone();
+        exsalt.append(&mut long_to_bytes(i as u32));
+        let mut Ti = HmacSha256(passw, &exsalt); 
+        let mut Uc = Ti.clone();
+        for _ in 1..c_rounds{
+            let Ui = HmacSha256(passw, &Uc);
+            for j in 0..HashLen{
+                Ti[j] ^= Ui[j];
+            }
+            Uc = Ui;
+        }
+        T.append(&mut Ti);
+    }
+    Vec::from(&T[..PBKDFKeyLen])
+}
