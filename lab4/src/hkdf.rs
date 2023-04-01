@@ -35,11 +35,11 @@ fn HmacSha256(key: &Vec<u8>, data: &Vec<u8>) -> Vec<u8>{
     hasher_left.finalize().to_vec()
 }
 
-fn HkdfExtract(xts: &Vec<u8>, skm: &Vec<u8>) -> Vec<u8>{
+pub fn HkdfExtract(xts: &Vec<u8>, skm: &Vec<u8>) -> Vec<u8>{
     HmacSha256(xts, skm)
 }
 
-fn long_to_bytes(mut n: u32) -> Vec<u8>{
+pub fn long_to_bytes(mut n: u32) -> Vec<u8>{
     let mut res: Vec<u8> = vec![];
     loop{
         res.push((n % 256) as u8);
@@ -52,13 +52,12 @@ fn long_to_bytes(mut n: u32) -> Vec<u8>{
     res
 }
 
-fn HkdfExpand(prk: &Vec<u8>, lastKey: &Vec<u8>, ctx: &Vec<u8>, i: u32) -> Vec<u8>{
+pub fn HkdfExpand(prk: &Vec<u8>, lastKey: &Vec<u8>, ctx: &Vec<u8>, i: u32) -> Vec<u8>{
     let mut Ki: Vec<u8> = vec![];
-    for n in 0..i{
-        let mut rctx = ctx.clone();
-        rctx.append(&mut long_to_bytes(n));
-        Ki = HmacSha256(prk, &rctx);
-    }
+    let mut rctx = lastKey.clone();
+    rctx.append(&mut prk.clone());
+    rctx.push((i % 256) as u8);
+    Ki = HmacSha256(prk, &rctx);
     Ki
 }
 
