@@ -41,15 +41,12 @@ fn test_omac(n: usize){
             omac.MacAddBlock(&data);
             mac.update(&data);
         }
-        let res = omac.MacFinalize() == Vec::from(&mac.finalize().into_bytes()[..]);
-        if !res{
-            panic!("Not equal");
-        }
+        assert_eq!(omac.MacFinalize(), Vec::from(&mac.finalize().into_bytes()[..]), "Not Equal");
     }
 }
 
 fn test_hmac(n: usize){
-    for i in 0..n{
+    for _ in 0..n{
         let num = rand::thread_rng().gen_range(32..96);
         let key = randbytes(num);
         let mut hmac = HMAC{
@@ -67,15 +64,12 @@ fn test_hmac(n: usize){
             hmac.MacAddBlock(&data);
             mac.update(&data);
         }
-        let res = hmac.MacFinalize() == Vec::from(&mac.finalize().into_bytes()[..]);
-        if !res{
-            panic!("Not equal");
-        }
+        assert_eq!(hmac.MacFinalize(), mac.finalize().into_bytes().to_vec(), "Not Equal");
     }
 }
 
 fn test_tcbc(n: usize){
-    for i in 0..n{
+    for _ in 0..n{
         let key = randbytes(16);
         let mut tcbc = TCBC{
             key: None,
@@ -94,7 +88,7 @@ fn test_tcbc(n: usize){
         let cipher = Aes128CbcEnc::new(&key1.into(), &iv.into());
         let mut dataf = vec![];
             
-        for j in 0..5{
+        for _ in 0..5{
             let num = rand::thread_rng().gen_range(1..16); //00);
             let mut data = randbytes(num);
             tcbc.MacAddBlock(&data);
@@ -114,10 +108,7 @@ fn test_tcbc(n: usize){
         let a = tcbc.MacFinalize();
         let b = Vec::from(&h2[len-16..len-8]); 
 
-        let res = a == b;
-        if !res{
-            panic!("Not equal");
-        }
+        assert_eq!(a, b, "Not Equal");
     }
 }
 
