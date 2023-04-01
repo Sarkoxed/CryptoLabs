@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::mem::size_of;
 
 use crate::tools::{new_hash, randbytes};
 
