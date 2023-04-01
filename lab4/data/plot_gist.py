@@ -42,19 +42,19 @@ def hist(data, xl, yl, title):
     plt.savefig(title)
 
 
-hist(temp, 'Temperature', 'Freq', 'TempFreq')
-hist(hum, 'Humidity', 'Freq', 'HumFreq')
-hist(wsp, 'WindSpeed', 'Freq', 'WindSpeedFreq')
-hist(cloud, 'CloudCover', 'Freq', 'CloudCoverFreq')
-hist(ozone, 'Ozone', 'Freq', 'OzoneFreq')
-hist(data, "Mix", "Freq", "MixFreq")
+hist(temp, 'Градусы', 'Частота', 'Температура')
+hist(hum, 'г/м^3', 'Частота', 'Влажность')
+hist(wsp, 'м/c', 'Частота', 'СкоростьВетра')
+hist(cloud, 'окт', 'Частота', 'Облачность')
+hist(ozone, '', 'Частота', 'Озоновыйслой')
+hist(data, "Mix", "Частота", "Cмешанныеданные")
 
 res_hkdf = json.load(open("res.json"))
-hist(res_hkdf, "10Bits", "Freq", "BitsHKDFFreq")
+hist(res_hkdf, "10Bits", "Частота", "HKDF")
 
 passes = json.load(open("passwords.json"))
 passes = [ord(x[0]) >> 3 for x in passes]
-hist(passes, "5Bits", "Freq", "BitsPasswordsFreq")
+hist(passes, "5Bits", "Частота", "Пароли")
 
 res_pbkdf2 = json.load(open("pass_res.json"))
-hist(res_pbkdf2, "10Bits", "Freq", "BitsPBKDF2Freq")
+hist(res_pbkdf2, "10Bits", "Частота", "PBKDF2")
