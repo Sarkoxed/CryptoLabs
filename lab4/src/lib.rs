@@ -41,12 +41,10 @@ pub fn HkdfExtract(xts: &Vec<u8>, skm: &Vec<u8>) -> Vec<u8>{
 }
 
 pub fn long_to_bytes(mut n: u32, k: usize) -> Vec<u8>{
-    let mut res: Vec<u8> = vec![0u8; k];
-    let mut counter = k-1;
+    let mut res: Vec<u8> = vec![];
     loop{
-        res[counter] = (n % 256) as u8;
+        res.push((n % 256) as u8);
         n /= 256;
-        counter -= 1;
         if n == 0{
             break;
         }
