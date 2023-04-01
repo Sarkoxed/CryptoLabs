@@ -69,12 +69,8 @@ fn pbkdf2_test(){
     
     let mut keys: Vec<Vec<u8>> = vec![];
     for pass in passes{
-        println!("{:?}", &pass);
         rand::thread_rng().fill_bytes(&mut salt);
         keys.push(PBKDF2(&salt, &pass, 10000));
-        println!("{:?}", &salt);
-        println!("{:?}", &keys[0]);
-        panic!("lol");
     }
 
     let mut bits = Vec::<u16>::new();
