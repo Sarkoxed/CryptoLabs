@@ -1,6 +1,7 @@
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+from Crypto.Util.number import long_to_bytes
 
 data = json.load(open("weather.json", 'rt'))["hourly"]['data']
 
@@ -48,8 +49,12 @@ hist(cloud, 'CloudCover', 'Freq', 'CloudCoverFreq')
 hist(ozone, 'Ozone', 'Freq', 'OzoneFreq')
 hist(data, "Mix", "Freq", "MixFreq")
 
-data = json.load(open("res.json"))
-hist(data, "Bits", "Freq", "BitsFreq")
+res_hkdf = json.load(open("res.json"))
+hist(res_hkdf, "10Bits", "Freq", "BitsHKDFFreq")
 
-#data = json.load(open("res"))
-#hist(data, "Bits1", "Freq1", "BitsFreq1")
+passes = json.load(open("passwords.json"))
+passes = [ord(x[0]) >> 3 for x in passes]
+hist(passes, "5Bits", "Freq", "BitsPasswordsFreq")
+
+res_pbkdf2 = json.load(open("pass_res.json"))
+hist(res_pbkdf2, "10Bits", "Freq", "BitsPBKDF2Freq")
