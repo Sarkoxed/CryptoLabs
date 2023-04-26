@@ -186,6 +186,9 @@ impl AuthenticEncryptor{
                 res.append(&mut mac);
             }
             Mode::Dec => {
+                if data.len() < BlockSize + HmacSize{
+                    panic!("Wrong structure");
+                }
                 let nonce = Vec::from(&data[..BlockSize]);
                 self.SetNonce(nonce);
                 self.AddBlock(&mut Vec::from(&data[BlockSize..]), true);
