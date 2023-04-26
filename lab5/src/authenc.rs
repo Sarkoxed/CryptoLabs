@@ -152,18 +152,17 @@ impl AuthenticEncryptor{
                     if dataBlock.len() < HmacSize{
                         panic!("No mac found in block");
                     }
-                    let mac = &dataBlock[dataBlock.len()-HmacSize..];
+                    mac = Vec::from(&dataBlock[dataBlock.len()-HmacSize..]);
                     block = Vec::from(&dataBlock[..dataBlock.len() - HmacSize]);
                 }
                 else{
                     block = dataBlock.clone(); 
                 }
                 hmac.update(&block.clone());
-                println!("Updated by: {:?}", &block);
                 self.ctr(&mut block);
 
                 let mut pt: Vec<u8> = self.result.clone().expect("No plaintext found");
-                pt.append(&mut block);
+                pt.append(&mut block.clone());
                 self.result = Some(pt);
 
                 if isFinal{

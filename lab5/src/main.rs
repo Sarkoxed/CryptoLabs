@@ -22,18 +22,18 @@ fn main() {
     println!("pt = {:?}", &pt);
     println!("ct = {:?}", &ct);
     
-    //let mut authenc = AuthenticEncryptor{
-    //    mode: Mode::Dec,
-    //    counter: None,
-    //    hmac: None,
-    //    cipher: None,
-    //    enc_state: None,
-    //    nonce: None,
-    //    result: None,
-    //    mac: None,
-    //};
+    let mut authenc = AuthenticEncryptor{
+        mode: Mode::Dec,
+        counter: None,
+        hmac: None,
+        cipher: None,
+        enc_state: None,
+        nonce: None,
+        result: None,
+        mac: None,
+    };
 
-    //authenc.SetKey(key.clone());
-    //let dec = authenc.ProcessData(&ct);
-    //assert_eq!(dec, pt);
+    authenc.SetKey(key.clone());
+    let dec = authenc.ProcessData(&ct);
+    assert_eq!(dec, pt);
 }
