@@ -2,7 +2,7 @@ mod authenc;
 
 use crate::authenc::{AuthenticEncryptor, rand_bytes, Mode};
 
-fn main() {
+fn test_enc_dec(){
     let key = rand_bytes(32);
     let pt: Vec<u8> = vec![72, 101, 108, 108, 111, 44, 32, 65, 98, 111, 98, 97, 46, 32, 73, 39, 109, 32, 115, 117, 115, 33];
     let mut authenc = AuthenticEncryptor{
@@ -36,4 +36,9 @@ fn main() {
     authenc.SetKey(key.clone());
     let dec = authenc.ProcessData(&ct);
     assert_eq!(dec, pt);
+
+}
+
+fn main() {
+    test_enc_dec();
 }
