@@ -15,8 +15,6 @@ fn test_enc_dec(){
         cipher: None,
         enc_state: None,
         nonce: None,
-        result: None,
-        mac: None,
     };
 
     authenc.SetKey(key.clone());
@@ -32,8 +30,6 @@ fn test_enc_dec(){
         cipher: None,
         enc_state: None,
         nonce: None,
-        result: None,
-        mac: None,
     };
 
     authenc.SetKey(key.clone());
@@ -54,8 +50,6 @@ fn main() {
         cipher: None,
         enc_state: None,
         nonce: None,
-        result: None,
-        mac: None,
     };
     authenc.SetKey(key);
     let ct = authenc.ProcessData(&fc);
@@ -70,8 +64,6 @@ fn main() {
         cipher: None,
         enc_state: None,
         nonce: None,
-        result: None,
-        mac: None,
     };
     authenc.SetKey(key);
     let pt = authenc.ProcessData(&fc);

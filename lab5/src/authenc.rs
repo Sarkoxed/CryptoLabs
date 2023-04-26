@@ -32,8 +32,6 @@ pub struct AuthenticEncryptor{
     pub enc_state:  Option<Vec<u8>>,
 
     pub nonce:      Option<Vec<u8>>,
-    pub result:     Option<Vec<u8>>,
-    pub mac:        Option<Vec<u8>>,
 }
 
 pub fn rand_bytes(n: usize) -> Vec<u8>{
@@ -54,7 +52,6 @@ impl AuthenticEncryptor{
        
         let cip = Aes128::new(GenericArray::from_slice(aes_key));
         self.cipher = Some(cip);
-        self.result = Some(vec![]);
 
         self.enc_state = Some(vec![]);
 
@@ -128,24 +125,22 @@ impl AuthenticEncryptor{
         self.enc_state = Some(enc_state);
     }
 
-    pub fn AddBlock(&mut self, dataBlock: &mut Vec<u8>, isFinal: bool){
+    pub fn AddBlock(&mut self, dataBlock: Vec<u8>, isFinal: bool) -> Vec<u8>{
         let mut hmac = self.hmac.clone().expect("No initialized hmac found");
 
+        let mut block;
         match self.mode{
             Mode::Enc => {
-                self.ctr(dataBlock);
-                let mut ct: Vec<u8> = self.result.clone().expect("No ciphertext found");
-                ct.append(&mut dataBlock.clone());
-                self.result = Some(ct);
+                block = dataBlock.clone();
+                self.ctr(&mut block);
                 
-                hmac.update(&dataBlock.clone());
+                hmac.update(&block.clone());
                 if isFinal{
-                    self.mac = Some(hmac.clone().finalize().into_bytes().to_vec());
+                    block.append(&mut hmac.clone().finalize().into_bytes().to_vec())
                 }
                 self.hmac = Some(hmac);
             }
             Mode::Dec => {
-                let mut block;
                 let mut mac = vec![];
 
                 if isFinal{
@@ -161,38 +156,46 @@ impl AuthenticEncryptor{
                 hmac.update(&block.clone());
                 self.ctr(&mut block);
 
-                let mut pt: Vec<u8> = self.result.clone().expect("No plaintext found");
-                pt.append(&mut block.clone());
-                self.result = Some(pt);
-
                 if isFinal{
                     hmac.clone().verify_slice(&mac).unwrap();
                 }
                 self.hmac = Some(hmac);
             }
         }
+        block
     }
 
     pub fn ProcessData(&mut self, data: &Vec<u8>) -> Vec<u8>{
         let mut res = vec![];
+        let mut partres;
+
         match self.mode{
             Mode::Enc => {
-                self.AddBlock(&mut data.clone(), true);
                 let mut nonce = self.nonce.clone().expect("No nonce found");
-                let mut ciphertext = self.result.clone().expect("No ct found");
-                let mut mac = self.mac.clone().expect("No mac found");
                 res.append(&mut nonce);
-                res.append(&mut ciphertext);
-                res.append(&mut mac);
+
+                let blocklen = (data.len() + BlockSize - 1) / BlockSize;
+                for i in 0..blocklen - 1{
+                    partres = self.AddBlock(Vec::from(&data[i * BlockSize..(i + 1) * BlockSize]), false);
+                    res.append(&mut partres);
+                }
+                partres = self.AddBlock(Vec::from(&data[(blocklen - 1) * BlockSize..]), true);
+                res.append(&mut partres);
             }
             Mode::Dec => {
+                let nonce = Vec::from(&data[..BlockSize]);
+                self.SetNonce(nonce);
+ 
                 if data.len() < BlockSize + HmacSize{
                     panic!("Wrong structure");
                 }
-                let nonce = Vec::from(&data[..BlockSize]);
-                self.SetNonce(nonce);
-                self.AddBlock(&mut Vec::from(&data[BlockSize..]), true);
-                res = self.result.clone().expect("No pt found");
+                let blocklen = (data.len() - HmacSize - 1) / BlockSize;
+                for i in 0..blocklen - 1{
+                    partres = self.AddBlock(Vec::from(&data[(i + 1) * BlockSize..(i + 2) * BlockSize]), false);
+                    res.append(&mut partres);
+                }
+                partres = self.AddBlock(Vec::from(&data[blocklen * BlockSize..]), true);
+                res.append(&mut partres);
             }
         }
         res
