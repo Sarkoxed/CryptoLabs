@@ -22,7 +22,7 @@ pub fn GetShared(sk: &Scalar, sharedPoint: &MontgomeryPoint) -> MontgomeryPoint{
     sk * sharedPoint
 }
 
-pub fn sign(m: &[u8; ScalarSize], secret: &Scalar) -> (Scalar, Scalar){
+pub fn sign(m: &[u8; 2 * ScalarSize], secret: &Scalar) -> (Scalar, Scalar){
     let base = constants::X25519_BASEPOINT;
     let k = rand64_bytes();
     let k = Scalar::from_bytes_mod_order_wide(&k);
@@ -38,17 +38,17 @@ pub fn sign(m: &[u8; ScalarSize], secret: &Scalar) -> (Scalar, Scalar){
     
     let Q = k * base;
     let r = Scalar::from_bytes_mod_order(*Q.as_bytes());
-    let h = Scalar::from_bytes_mod_order(*m);
+    let h = Scalar::from_bytes_mod_order_wide(m);
     let s = (h + secret * r) * Scalar::invert(&k);
     (r, s)
 }
 
-pub fn verify(m: &[u8; ScalarSize], r: &Scalar, s: &Scalar, pk: &MontgomeryPoint) -> bool{
+pub fn verify(m: &[u8; 2 * ScalarSize], r: &Scalar, s: &Scalar, pk: &MontgomeryPoint) -> bool{
     if r.eq(&Scalar::zero()) || s.eq(&Scalar::zero()){
         panic!("Invalid signature. r or s are not supposed to be 0");
     }   
     
-    let h = Scalar::from_bytes_mod_order(*m);
+    let h = Scalar::from_bytes_mod_order_wide(m);
     let u1 = h * Scalar::invert(s);
     let u2 = r * Scalar::invert(s);
 
