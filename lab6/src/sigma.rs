@@ -2,7 +2,9 @@ use curve25519_dalek::montgomery::MontgomeryPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
 
-use crate::tools::{GenKey, GetShared, sign, verify, rand_bytes};
+use crate::tools::{GenKey, GetShared, sign, verify};
+use crate::tools::{rand_bytes};
+use crate::tools::{AuthenticEncryptor, Mode};
 
 use hmac::{Hmac, Mac, digest};
 use sha2::Sha256;
@@ -67,14 +69,14 @@ pub fn init_session_keys(x: &mut Party, r1: &Vec<u8>, r2: &mut Vec<u8>){
     (x.k_m, x.k_e) = (Vec::from(&prf_res[..BlockSize]), Vec::from(&prf_res[BlockSize..]));
 }
 
-pub fn sign_public_keys(x: &mut Party) -> (Scalar, Scalar){
+pub fn sign_public_keys(x: &Party) -> (Scalar, Scalar){
     let mut m = x.o_ecdh_pk.as_bytes().to_vec();
     m.append(&mut x.ecdh_pk.as_bytes().to_vec());
     let m: [u8; 2 * ScalarSize] = m.try_into().unwrap();
     sign(&m, &x.ecdsa_sk)
 } 
 
-pub fn verify_public_keys(x: &mut Party, signature: &(Scalar, Scalar)){
+pub fn verify_public_keys(x: &Party, signature: &(Scalar, Scalar)){
     let (r, s) = signature;
     
     let mut m = x.ecdh_pk.as_bytes().to_vec();
@@ -87,16 +89,19 @@ pub fn verify_public_keys(x: &mut Party, signature: &(Scalar, Scalar)){
     }
 }
 
-pub fn get_mac(x: &mut Party) -> Vec<u8>{
+pub fn get_mac(x: &Party) -> Vec<u8>{
     let mut mac = Hmac::<Sha256>::new_from_slice(&x.k_m[..]).unwrap();
     mac.update(&x.id[..]);
     mac.finalize().into_bytes().to_vec()
 }
 
-pub fn verify_mac(x: &mut Party, o_mac: &Vec<u8>){
+pub fn verify_mac(x: &Party, o_mac: &Vec<u8>){
     let mut mac = Hmac::<Sha256>::new_from_slice(&x.k_m[..]).unwrap();
     mac.update(&x.o_id[..]);
-    let _ = mac.verify_slice(&o_mac[..]);
+    match mac.verify_slice(&o_mac[..]){
+        Ok(_) => (),
+        Err(e) => panic!("{e}"),
+    }
 }
 
 pub fn sigma(A: &mut Party, B: &mut Party){
@@ -108,19 +113,52 @@ pub fn sigma(A: &mut Party, B: &mut Party){
     init_ecdh(B);
     let mut r_B = rand_bytes(R);
     B.ecdh_sp = GetShared(&B.ecdh_sk, &A.ecdh_pk);
-    init_session_keys(B, &r_A, &mut r_B);
-    sign_public_keys(B);
+    init_session_keys(B, &r_A, &mut r_B.clone());
     let sign_B = sign_public_keys(B);
     let mac_B = get_mac(B);
-   
+  
 
+    A.o_ecdh_pk = B.ecdh_pk.clone();
     A.ecdh_sp = GetShared(&A.ecdh_sk, &B.ecdh_pk);
+    A.o_id = B.id.clone();
     init_session_keys(A, &r_A, &mut r_B);
     verify_public_keys(A, &sign_B);
     verify_mac(A, &mac_B);
     let sign_A = sign_public_keys(A);
     let mac_A = get_mac(A);
+   
 
+    B.o_id = A.id.clone();
     verify_public_keys(B, &sign_A);
     verify_mac(B, &mac_A);
+}
+
+pub fn encrypt(x: &Party, pt: &Vec<u8>) -> Vec<u8>{
+    let mut authenc = AuthenticEncryptor{
+        mode: Mode::Enc,
+        counter: None,
+        hmac: None,
+        cipher: None,
+        enc_state: None,
+        nonce: None,
+    };
+    let mut key = x.k_e.clone();
+    key.append(&mut x.k_m.clone());
+    authenc.SetKey(key);
+    authenc.ProcessData(pt)
+}
+
+pub fn decrypt(x: &Party, c: &Vec<u8>) -> Vec<u8>{
+    let mut authenc = AuthenticEncryptor{
+        mode: Mode::Dec,
+        counter: None,
+        hmac: None,
+        cipher: None,
+        enc_state: None,
+        nonce: None,
+    };
+    let mut key = x.k_e.clone();
+    key.append(&mut x.k_m.clone());
+    authenc.SetKey(key);
+    authenc.ProcessData(c)
 }
