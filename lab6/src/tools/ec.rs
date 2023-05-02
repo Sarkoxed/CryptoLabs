@@ -56,8 +56,11 @@ pub fn verify(m: &[u8; 2 * ScalarSize], r: &Scalar, s: &Scalar, pk: &MontgomeryP
 
     let Pl = (u1 * base).to_edwards(0).unwrap();
     let Pr = (u2 * pk).to_edwards(0).unwrap();
-    let P = Pl + Pr;
 
-    let res = Scalar::from_bytes_mod_order(*P.to_montgomery().as_bytes());
-    res.eq(&r)
+    let P1 = Pl + Pr;
+    let P2 = Pl - Pr;
+
+    let res1 = Scalar::from_bytes_mod_order(*P1.to_montgomery().as_bytes());
+    let res2 = Scalar::from_bytes_mod_order(*P2.to_montgomery().as_bytes());
+    res1.eq(r) || res2.eq(r)
 }
